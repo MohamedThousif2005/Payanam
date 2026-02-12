@@ -1,0 +1,11 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "emmet.includeLanguages": {
+        "javascript": "javascriptreact"
+    },
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/target": true
+    }
+}
