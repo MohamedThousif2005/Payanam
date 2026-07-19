@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { transportService } from '../services/api'
 
 const TrainDashboard = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const TrainDashboard = () => {
 
   const [selectedTrain, setSelectedTrain] = useState(null)
   const [searchResults, setSearchResults] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
 
   // Complete station data with all stops and proper order
   const allStations = [
@@ -133,30 +135,58 @@ const TrainDashboard = () => {
     }))
   }
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault()
+    if (!formData.from || !formData.to) return
     
-    if (!formData.from || !formData.to) {
-      alert('Please select both From and To stations')
-      return
+    setIsLoading(true)
+    try {
+      const response = await transportService.unifiedSearch({
+        from: formData.from,
+        to: formData.to,
+        type: 'TRAIN'
+      })
+      
+      const trains = response.data.map(train => {
+        const info = train.realTimeInfo || {}
+        return {
+          id: train.serviceId,
+          number: train.serviceNumber,
+          name: train.serviceName,
+          operator: train.operator,
+          from: train.fromStop,
+          to: train.toStop,
+          departure: train.departureTime,
+          arrival: train.arrivalTime,
+          fare: train.fare,
+          availableSeats: train.availableSeats,
+          currentStatus: info.currentStatus || train.status,
+          type: train.serviceName.includes('Express') ? 'express' : 'superfast',
+          delay: 'On time',
+          duration: '7h 45m',
+          tracking: info,
+          progress: info.progress || 0,
+          position: info.position || 'Scheduled',
+          nextStop: info.nextStop || '',
+          routeStops: (train.routeStops || []).map((s, idx) => ({
+            station: s.stopName,
+            code: s.stopName.substring(0, 3).toUpperCase(),
+            time: s.arrivalTime,
+            status: idx === 0 ? 'Departed' : 'Scheduled',
+            actualTime: s.arrivalTime,
+            platform: 'PF ' + s.stopOrder
+          })),
+          coaches: 'S1-S10, B1-B5, A1-A2' // Mock coaches for now
+        }
+      })
+      
+      setSearchResults(trains)
+      setSelectedTrain(null)
+    } catch (err) {
+      console.error('Train search failed:', err)
+    } finally {
+      setIsLoading(false)
     }
-
-    // Simple search logic - find trains that have both from and to stations in their route
-    const filteredTrains = sampleTrains.filter(train => {
-      const fromStop = train.routeStops.find(stop => stop.station === formData.from)
-      const toStop = train.routeStops.find(stop => stop.station === formData.to)
-      
-      if (!fromStop || !toStop) return false
-      
-      // Check if from station comes before to station in the route
-      const fromIndex = train.routeStops.findIndex(stop => stop.station === formData.from)
-      const toIndex = train.routeStops.findIndex(stop => stop.station === formData.to)
-      
-      return fromIndex < toIndex
-    })
-
-    setSearchResults(filteredTrains)
-    setSelectedTrain(null)
   }
 
   const handleTrainSelect = (train) => {
@@ -353,14 +383,22 @@ const TrainDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 style={{ 
-            textAlign: 'center', 
-            color: 'var(--deep-blue)',
-            marginBottom: '2rem',
-            fontSize: '2.5rem'
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '1rem',
+            marginBottom: '2rem'
           }}>
-            Train Services
-          </h1>
+            <img src="/favicon.png" alt="Logo" style={{ width: '50px', height: '50px' }} />
+            <h1 style={{ 
+              color: 'var(--deep-blue)',
+              fontSize: '2.5rem',
+              margin: 0
+            }}>
+              Train Services
+            </h1>
+          </div>
 
           {/* Search Form */}
           <div className="card" style={{ maxWidth: '900px', margin: '0 auto 3rem auto' }}>
@@ -738,6 +776,56 @@ const TrainDashboard = () => {
                               }}>
                                 🚆 Live Route & Tracking
                               </strong>
+
+                              {/* Progress Bar */}
+                              <div style={{
+                                background: 'white',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                marginBottom: '1.5rem',
+                                boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+                              }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  justifyContent: 'space-between',
+                                  marginBottom: '0.5rem',
+                                  fontSize: '0.9rem',
+                                  fontWeight: 'bold',
+                                  color: 'var(--deep-blue)'
+                                }}>
+                                  <span>{train.from}</span>
+                                  <span style={{ color: 'var(--forest-green)' }}>{train.position}</span>
+                                  <span>{train.to}</span>
+                                </div>
+                                
+                                <div style={{
+                                  height: '10px',
+                                  background: 'var(--soft-gray)',
+                                  borderRadius: '5px',
+                                  position: 'relative',
+                                  overflow: 'hidden'
+                                }}>
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${train.progress}%` }}
+                                    transition={{ duration: 1, ease: "easeOut" }}
+                                    style={{
+                                      height: '100%',
+                                      background: 'linear-gradient(90deg, var(--deep-blue), var(--sky-blue))',
+                                      borderRadius: '5px'
+                                    }}
+                                  />
+                                </div>
+                                <div style={{
+                                  marginTop: '0.5rem',
+                                  textAlign: 'center',
+                                  fontSize: '0.8rem',
+                                  color: 'var(--deep-blue)',
+                                  opacity: 0.8
+                                }}>
+                                  Next Stop: <strong>{train.nextStop || 'Checking...'}</strong>
+                                </div>
+                              </div>
                               <div style={{
                                 background: 'var(--soft-gray)',
                                 padding: '1rem',

@@ -26,15 +26,10 @@ public class TransportController {
     private BusService busService;
     
     @Autowired
-    private BusRepository busRepository; // ADD THIS LINE
-    
-    // Remove these if you don't have them
-    // @Autowired
-    // private TrainService trainService;
-    // @Autowired
-    // private FlightService flightService;
-    // @Autowired
-    // private VehicleService vehicleService;
+    private BusRepository busRepository;
+
+    @Autowired
+    private EnhancedTransportService enhancedTransportService;
     
     // Health check
     @GetMapping("/health")
@@ -48,13 +43,19 @@ public class TransportController {
     }
 
     // Bus endpoints
-    @PostMapping("/buses/search")
-    public ResponseEntity<List<Bus>> searchBuses(@RequestBody SearchRequest request) {
+    @PostMapping("/unified-search")
+    public ResponseEntity<?> unifiedSearch(@RequestBody Map<String, String> request) {
         try {
-            List<Bus> buses = busService.searchBuses(request.getFrom(), request.getTo(), request.getType());
-            return ResponseEntity.ok(buses);
+            String from = request.get("from");
+            String to = request.get("to");
+            String typeStr = request.get("type"); // BUS, TRAIN, FLIGHT
+            
+            TransportType type = TransportType.valueOf(typeStr.toUpperCase());
+            List<Map<String, Object>> results = enhancedTransportService.searchTransport(from, to, type);
+            
+            return ResponseEntity.ok(results);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
     

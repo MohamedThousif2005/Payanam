@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { exploreService } from '../services/api'
 
 const ExploreDashboard = () => {
   const [selectedCity, setSelectedCity] = useState('')
@@ -257,11 +258,30 @@ const ExploreDashboard = () => {
     return icons[category] || '🏛️'
   }
 
-  const filteredPlaces = selectedCity 
-    ? cityPlaces[selectedCity]?.filter(place => 
-        selectedCategory === 'all' || place.category === selectedCategory
-      ) || []
-    : []
+  const [places, setPlaces] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (selectedCity) {
+      fetchPlaces(selectedCity)
+    }
+  }, [selectedCity])
+
+  const fetchPlaces = async (city) => {
+    setIsLoading(true)
+    try {
+      const response = await exploreService.getPlacesByCity(city)
+      setPlaces(response.data)
+    } catch (err) {
+      console.error('Failed to fetch places:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filteredPlaces = places.filter(place => 
+    selectedCategory === 'all' || place.category === selectedCategory
+  )
 
   return (
     <div style={{ padding: '2rem 0', minHeight: '80vh' }}>
@@ -271,14 +291,22 @@ const ExploreDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 style={{ 
-            textAlign: 'center', 
-            color: 'var(--deep-blue)',
-            marginBottom: '2rem',
-            fontSize: '2.5rem'
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '1rem',
+            marginBottom: '2rem'
           }}>
-            Explore Tamil Nadu
-          </h1>
+            <img src="/favicon.png" alt="Logo" style={{ width: '50px', height: '50px' }} />
+            <h1 style={{ 
+              color: 'var(--deep-blue)',
+              fontSize: '2.5rem',
+              margin: 0
+            }}>
+              Explore Tamil Nadu
+            </h1>
+          </div>
 
           <p style={{
             textAlign: 'center',
@@ -412,17 +440,59 @@ const ExploreDashboard = () => {
                       transition={{ duration: 0.3 }}
                       className="card"
                       style={{
+                        padding: 0,
+                        overflow: 'hidden',
                         borderLeft: `4px solid ${getCategoryColor(place.category)}`
                       }}
                     >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'flex-start',
-                        marginBottom: '1rem'
+                      {/* Place Image */}
+                      <div style={{
+                        height: '200px',
+                        width: '100%',
+                        position: 'relative',
+                        backgroundColor: 'var(--soft-gray)'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <span style={{ fontSize: '2.5rem' }}>{place.image}</span>
+                        {place.imageUrl ? (
+                          <img 
+                            src={place.imageUrl} 
+                            alt={place.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/400x200?text=' + place.name }}
+                          />
+                        ) : (
+                          <div style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            fontSize: '4rem'
+                          }}>
+                            {place.image || getCategoryIcon(place.category)}
+                          </div>
+                        )}
+                        <div style={{
+                          position: 'absolute',
+                          top: '1rem',
+                          right: '1rem',
+                          background: 'rgba(255, 255, 255, 0.9)',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '20px',
+                          fontWeight: 'bold',
+                          color: 'var(--success-green)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>
+                          ⭐ {place.rating}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: '1.5rem' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'flex-start',
+                          marginBottom: '1rem'
+                        }}>
                           <div>
                             <h3 style={{ color: 'var(--deep-blue)', margin: '0 0 0.25rem 0' }}>
                               {place.name}
@@ -431,136 +501,133 @@ const ExploreDashboard = () => {
                               color: 'var(--deep-blue)', 
                               opacity: 0.7, 
                               margin: 0,
-                              fontSize: '0.9rem'
+                              fontSize: '0.9rem',
+                              lineHeight: '1.4'
                             }}>
                               {place.description}
                             </p>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ 
-                            color: 'var(--success-green)', 
-                            fontWeight: 'bold',
-                            fontSize: '1.1rem',
-                            marginBottom: '0.25rem'
-                          }}>
-                            ⭐ {place.rating}
-                          </div>
-                          <div style={{ 
-                            color: 'var(--deep-blue)',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold'
-                          }}>
-                            {place.entryFee}
-                          </div>
-                        </div>
-                      </div>
 
-                      <div style={{ 
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '1rem',
-                        marginBottom: '1rem'
-                      }}>
-                        <div>
-                          <strong style={{ color: 'var(--deep-blue)', fontSize: '0.9rem' }}>
-                            🕐 Best Time:
-                          </strong>
-                          <div style={{ color: 'var(--deep-blue)', fontSize: '0.8rem' }}>
-                            {place.bestTime}
-                          </div>
-                        </div>
-                        <div>
-                          <strong style={{ color: 'var(--deep-blue)', fontSize: '0.9rem' }}>
-                            💰 Entry Fee:
-                          </strong>
-                          <div style={{ color: 'var(--deep-blue)', fontSize: '0.8rem' }}>
-                            {place.entryFee}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong style={{ 
-                          color: 'var(--deep-blue)', 
-                          marginBottom: '0.5rem', 
-                          display: 'block',
-                          fontSize: '0.9rem'
+                        <div style={{ 
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '1rem',
+                          marginBottom: '1rem',
+                          padding: '0.75rem',
+                          background: 'var(--soft-gray)',
+                          borderRadius: '8px'
                         }}>
-                          ✨ Highlights:
-                        </strong>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          {place.highlights.map((highlight, idx) => (
-                            <span
-                              key={idx}
-                              style={{
-                                background: 'var(--soft-gray)',
-                                padding: '0.25rem 0.5rem',
-                                borderRadius: '12px',
-                                fontSize: '0.7rem',
-                                color: 'var(--deep-blue)'
-                              }}
-                            >
-                              {highlight}
-                            </span>
-                          ))}
+                          <div>
+                            <strong style={{ color: 'var(--deep-blue)', fontSize: '0.8rem', display: 'block' }}>
+                              🕐 Best Time:
+                            </strong>
+                            <div style={{ color: 'var(--deep-blue)', fontSize: '0.8rem', opacity: 0.8 }}>
+                              {place.bestTime || 'Morning/Evening'}
+                            </div>
+                          </div>
+                          <div>
+                            <strong style={{ color: 'var(--deep-blue)', fontSize: '0.8rem', display: 'block' }}>
+                              💰 Entry Fee:
+                            </strong>
+                            <div style={{ color: 'var(--deep-blue)', fontSize: '0.8rem', opacity: 0.8 }}>
+                              {place.entryFee || 'Free'}
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong style={{ 
-                          color: 'var(--deep-blue)', 
-                          marginBottom: '0.5rem', 
-                          display: 'block',
-                          fontSize: '0.9rem'
-                        }}>
-                          🍽️ Must Try:
-                        </strong>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          {place.mustTry.map((item, idx) => (
-                            <span
-                              key={idx}
-                              style={{
-                                background: 'var(--warm-orange)',
-                                padding: '0.25rem 0.5rem',
-                                borderRadius: '12px',
-                                fontSize: '0.7rem',
-                                color: 'white'
-                              }}
-                            >
-                              {item}
-                            </span>
-                          ))}
+                        {place.highlights && place.highlights.length > 0 && (
+                          <div style={{ marginBottom: '1rem' }}>
+                            <strong style={{ 
+                              color: 'var(--deep-blue)', 
+                              marginBottom: '0.5rem', 
+                              display: 'block',
+                              fontSize: '0.8rem'
+                            }}>
+                              ✨ Highlights:
+                            </strong>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {place.highlights.map((highlight, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    background: 'white',
+                                    border: '1px solid var(--soft-gray)',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.7rem',
+                                    color: 'var(--deep-blue)'
+                                  }}
+                                >
+                                  {highlight}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {place.mustTry && place.mustTry.length > 0 && (
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <strong style={{ 
+                              color: 'var(--deep-blue)', 
+                              marginBottom: '0.5rem', 
+                              display: 'block',
+                              fontSize: '0.8rem'
+                            }}>
+                              🍽️ Must Try:
+                            </strong>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                              {place.mustTry.map((item, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    background: 'var(--warm-orange)',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.7rem',
+                                    color: 'white'
+                                  }}
+                                >
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="btn btn-primary"
+                            onClick={() => window.open(place.location || `https://www.google.com/maps/search/${place.name}+${place.city}`, '_blank')}
+                            style={{
+                              flex: 1,
+                              padding: '10px',
+                              fontSize: '0.85rem',
+                              backgroundColor: 'var(--sky-blue)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem'
+                            }}
+                          >
+                            📍 Directions
+                          </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="btn btn-primary"
+                            style={{
+                              flex: 1,
+                              padding: '10px',
+                              fontSize: '0.85rem',
+                              backgroundColor: 'var(--forest-green)'
+                            }}
+                          >
+                            ℹ️ Info
+                          </motion.button>
                         </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="btn btn-primary"
-                          style={{
-                            flex: 1,
-                            padding: '10px',
-                            fontSize: '0.9rem',
-                            backgroundColor: 'var(--sky-blue)'
-                          }}
-                        >
-                          📍 Get Directions
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="btn btn-primary"
-                          style={{
-                            flex: 1,
-                            padding: '10px',
-                            fontSize: '0.9rem',
-                            backgroundColor: 'var(--forest-green)'
-                          }}
-                        >
-                          ℹ️ More Info
-                        </motion.button>
                       </div>
                     </motion.div>
                   ))}

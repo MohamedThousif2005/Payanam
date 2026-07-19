@@ -8,6 +8,9 @@ import FlightDashboard from './pages/FlightDashboard'
 import CarBikeDashboard from './pages/CarBikeDashboard'
 import ExploreDashboard from './pages/ExploreDashboard'
 
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+
 function App() {
   return (
     <Router>
@@ -20,6 +23,8 @@ function App() {
           <Route path="/flight" element={<FlightDashboard />} />
           <Route path="/car-bike" element={<CarBikeDashboard />} />
           <Route path="/explore" element={<ExploreDashboard />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
         </Routes>
       </div>
     </Router>

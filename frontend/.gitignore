@@ -1,5 +1,21 @@
+# Frontend-specific overrides (root .gitignore covers most rules)
+
+# Dependencies — never commit
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+.vite/
+
+# Environment secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.local
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,15 +23,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Editor
 .DS_Store
 *.suo
 *.ntvs*

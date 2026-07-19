@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { vehicleService } from '../services/api'
 
 const CarBikeDashboard = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,9 @@ const CarBikeDashboard = () => {
 
   const [selectedVehicle, setSelectedVehicle] = useState(null)
   const [searchResults, setSearchResults] = useState([])
-  const [activeTab, setActiveTab] = useState('rental') // rental, workshops, taxi
+  const [allServices, setAllServices] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('rental') // rental, workshop, taxi
 
   const tamilnaduCities = [
     'Chennai', 'Coimbatore', 'Madurai', 'Trichy', 'Salem',
@@ -27,11 +30,11 @@ const CarBikeDashboard = () => {
 
   // Sample rental vehicles
   const sampleVehicles = [
-    { 
-      type: 'car', 
-      name: 'Maruti Swift Dzire', 
+    {
+      type: 'car',
+      name: 'Maruti Swift Dzire',
       brand: 'Maruti Suzuki',
-      fuel: 'Petrol', 
+      fuel: 'Petrol',
       transmission: 'Manual',
       seats: 5,
       price: '₹1,200/day',
@@ -40,11 +43,11 @@ const CarBikeDashboard = () => {
       location: 'Chennai',
       available: true
     },
-    { 
-      type: 'car', 
-      name: 'Hyundai Creta', 
+    {
+      type: 'car',
+      name: 'Hyundai Creta',
       brand: 'Hyundai',
-      fuel: 'Diesel', 
+      fuel: 'Diesel',
       transmission: 'Automatic',
       seats: 5,
       price: '₹2,500/day',
@@ -53,11 +56,11 @@ const CarBikeDashboard = () => {
       location: 'Coimbatore',
       available: true
     },
-    { 
-      type: 'bike', 
-      name: 'Royal Enfield Classic 350', 
+    {
+      type: 'bike',
+      name: 'Royal Enfield Classic 350',
       brand: 'Royal Enfield',
-      fuel: 'Petrol', 
+      fuel: 'Petrol',
       transmission: 'Manual',
       seats: 2,
       price: '₹800/day',
@@ -66,11 +69,11 @@ const CarBikeDashboard = () => {
       location: 'Madurai',
       available: true
     },
-    { 
-      type: 'scooter', 
-      name: 'Honda Activa 6G', 
+    {
+      type: 'scooter',
+      name: 'Honda Activa 6G',
       brand: 'Honda',
-      fuel: 'Petrol', 
+      fuel: 'Petrol',
       transmission: 'Automatic',
       seats: 2,
       price: '₹400/day',
@@ -189,6 +192,60 @@ const CarBikeDashboard = () => {
     }
   ]
 
+  useEffect(() => {
+    fetchServices()
+  }, [])
+
+  const fetchServices = async () => {
+    setIsLoading(true)
+    try {
+      const response = await vehicleService.getAll()
+      
+      // Map backend data to frontend expected format to prevent crashes
+      const mappedServices = response.data.map(s => {
+        return {
+          ...s,
+          brand: s.brand || 'Standard',
+          fuel: s.fuel || 'Petrol',
+          transmission: s.transmission || 'Manual',
+          seats: s.seats || 4,
+          image: s.vehicleType === 'bike' ? '🏍️' : s.vehicleType === 'scooter' ? '🛵' : '🚗',
+          features: s.services ? s.services.split(',').map(f => f.trim()) : ['Basic'],
+          location: s.city || 'Chennai'
+        }
+      });
+      
+      // If backend returns no rentals, fallback to sample vehicles for demo purposes
+      const backendRentals = mappedServices.filter(s => s.type === 'rental');
+      const finalRentals = backendRentals.length > 0 ? mappedServices : [...sampleVehicles, ...mappedServices];
+      
+      setAllServices(finalRentals)
+      setSearchResults(finalRentals.filter(s => s.type === 'rental' || s.type === 'car' || s.type === 'bike' || s.type === 'scooter'))
+    } catch (err) {
+      console.error('Failed to fetch vehicle services:', err)
+      // Fallback on error
+      setAllServices(sampleVehicles)
+      setSearchResults(sampleVehicles.filter(s => s.type === 'car' || s.type === 'bike' || s.type === 'scooter'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSearch = (e) => {
+    if (e) e.preventDefault()
+    
+    const filtered = allServices.filter(service => {
+      const matchesType = !formData.vehicleType || service.vehicleType === formData.vehicleType || service.type === formData.vehicleType
+      // Use location or city depending on what's available
+      const serviceLoc = service.location || service.city
+      const matchesLocation = !formData.location || serviceLoc === formData.location
+      const matchesTab = service.type === activeTab || (activeTab === 'rental' && (!service.type || service.type === 'car' || service.type === 'bike' || service.type === 'scooter'))
+      return matchesType && matchesLocation && matchesTab
+    })
+    setSearchResults(filtered)
+    setSelectedVehicle(null)
+  }
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -197,39 +254,32 @@ const CarBikeDashboard = () => {
     }))
   }
 
-  const handleSearch = (e) => {
-    e.preventDefault()
-    // Filter vehicles based on search criteria
-    const filteredVehicles = sampleVehicles.filter(vehicle => {
-      const matchesType = !formData.vehicleType || vehicle.type === formData.vehicleType
-      const matchesLocation = !formData.location || vehicle.location === formData.location
-      return matchesType && matchesLocation
-    })
-    setSearchResults(filteredVehicles)
-    setSelectedVehicle(null)
-    setActiveTab('rental')
-  }
-
   const handleVehicleSelect = (vehicle) => {
-    setSelectedVehicle(selectedVehicle?.name === vehicle.name ? null : vehicle)
+    setSelectedVehicle(vehicle)
   }
 
   const getVehicleTypeColor = (type) => {
     const colors = {
-      car: 'var(--sky-blue)',
-      bike: 'var(--warm-orange)',
-      scooter: 'var(--forest-green)'
+      'car': '#3B82F6',
+      'bike': '#F59E0B',
+      'scooter': '#10B981'
     }
-    return colors[type] || 'var(--deep-blue)'
+    return colors[type] || '#1E40AF'
   }
 
-  const filteredWorkshops = workshops.filter(workshop => 
-    !formData.location || workshop.location === formData.location
-  )
+  const filteredWorkshops = workshops.filter(workshop => {
+    const matchesLocation = !formData.location || workshop.location === formData.location
+    return matchesLocation
+  })
 
-  const filteredTaxis = taxiServices.filter(taxi => 
-    !formData.location || taxi.location === formData.location
-  )
+  const filteredTaxis = taxiServices.filter(taxi => {
+    const matchesLocation = !formData.location || taxi.location === formData.location
+    return matchesLocation
+  })
+
+  useEffect(() => {
+    handleSearch()
+  }, [activeTab, formData.vehicleType, formData.location, allServices])
 
   return (
     <div style={{ padding: '2rem 0', minHeight: '80vh' }}>
@@ -239,14 +289,22 @@ const CarBikeDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 style={{ 
-            textAlign: 'center', 
-            color: 'var(--deep-blue)',
-            marginBottom: '2rem',
-            fontSize: '2.5rem'
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '1rem',
+            marginBottom: '2rem'
           }}>
-            Car & Bike Services
-          </h1>
+            <img src="/favicon.png" alt="Logo" style={{ width: '50px', height: '50px' }} />
+            <h1 style={{
+              color: 'var(--deep-blue)',
+              fontSize: '2.5rem',
+              margin: 0
+            }}>
+              Car & Bike Services
+            </h1>
+          </div>
 
           {/* Search Form */}
           <div className="card" style={{ maxWidth: '900px', margin: '0 auto 3rem auto' }}>
@@ -334,42 +392,42 @@ const CarBikeDashboard = () => {
                 </motion.button>
               </div>
             </form>
-          {/* Reset Search Button */}
-  {(formData.vehicleType || formData.location) && (
-    <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-      <motion.button
-        type="button"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => {
-          setFormData({
-            vehicleType: '',
-            location: '',
-            pickupDate: '',
-            returnDate: ''
-          })
-          setSearchResults([])
-          setSelectedVehicle(null)
-          setActiveTab('rental')
-        }}
-        className="btn"
-        style={{
-          padding: '10px 20px',
-          fontSize: '0.9rem',
-          backgroundColor: 'var(--soft-gray)',
-          color: 'var(--deep-blue)'
-        }}
-      >
-        Reset Search
-      </motion.button>
-    </div>
-  )}
-</div>
+            {/* Reset Search Button */}
+            {(formData.vehicleType || formData.location) && (
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setFormData({
+                      vehicleType: '',
+                      location: '',
+                      pickupDate: '',
+                      returnDate: ''
+                    })
+                    setSearchResults([])
+                    setSelectedVehicle(null)
+                    setActiveTab('rental')
+                  }}
+                  className="btn"
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '0.9rem',
+                    backgroundColor: 'var(--soft-gray)',
+                    color: 'var(--deep-blue)'
+                  }}
+                >
+                  Reset Search
+                </motion.button>
+              </div>
+            )}
+          </div>
 
           {/* Tab Navigation */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
             marginBottom: '2rem',
             borderBottom: '2px solid var(--soft-gray)'
           }}>
@@ -409,14 +467,14 @@ const CarBikeDashboard = () => {
                 exit={{ opacity: 0 }}
                 style={{ marginTop: '2rem' }}
               >
-                <h2 style={{ 
+                <h2 style={{
                   color: 'var(--deep-blue)',
                   marginBottom: '1.5rem',
                   textAlign: 'center'
                 }}>
                   Available Vehicles ({searchResults.length})
                 </h2>
-                
+
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
@@ -436,9 +494,9 @@ const CarBikeDashboard = () => {
                       }}
                       onClick={() => handleVehicleSelect(vehicle)}
                     >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'flex-start',
                         marginBottom: '1rem'
                       }}>
@@ -448,9 +506,9 @@ const CarBikeDashboard = () => {
                             <h3 style={{ color: 'var(--deep-blue)', margin: '0 0 0.25rem 0' }}>
                               {vehicle.name}
                             </h3>
-                            <p style={{ 
-                              color: 'var(--deep-blue)', 
-                              opacity: 0.7, 
+                            <p style={{
+                              color: 'var(--deep-blue)',
+                              opacity: 0.7,
                               margin: 0,
                               fontSize: '0.9rem'
                             }}>
@@ -458,8 +516,8 @@ const CarBikeDashboard = () => {
                             </p>
                           </div>
                         </div>
-                        <span style={{ 
-                          color: 'var(--success-green)', 
+                        <span style={{
+                          color: 'var(--success-green)',
                           fontWeight: 'bold',
                           fontSize: '1.2rem'
                         }}>
@@ -468,8 +526,8 @@ const CarBikeDashboard = () => {
                       </div>
 
                       <div style={{ marginBottom: '1rem' }}>
-                        <p style={{ 
-                          color: 'var(--deep-blue)', 
+                        <p style={{
+                          color: 'var(--deep-blue)',
                           opacity: 0.8,
                           marginBottom: '0.5rem'
                         }}>
@@ -521,14 +579,14 @@ const CarBikeDashboard = () => {
                 exit={{ opacity: 0 }}
                 style={{ marginTop: '2rem' }}
               >
-                <h2 style={{ 
+                <h2 style={{
                   color: 'var(--deep-blue)',
                   marginBottom: '1.5rem',
                   textAlign: 'center'
                 }}>
                   🛠️ Workshops & Service Centers ({filteredWorkshops.length})
                 </h2>
-                
+
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -545,9 +603,9 @@ const CarBikeDashboard = () => {
                         borderLeft: `4px solid ${workshop.emergency ? 'var(--error-red)' : 'var(--forest-green)'}`
                       }}
                     >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'flex-start',
                         marginBottom: '1rem'
                       }}>
@@ -567,17 +625,17 @@ const CarBikeDashboard = () => {
                               </span>
                             )}
                           </h3>
-                          <p style={{ 
-                            color: 'var(--deep-blue)', 
-                            opacity: 0.7, 
+                          <p style={{
+                            color: 'var(--deep-blue)',
+                            opacity: 0.7,
                             margin: '0 0 0.5rem 0',
                             fontSize: '0.9rem'
                           }}>
                             📍 {workshop.address}
                           </p>
-                          <p style={{ 
-                            color: 'var(--deep-blue)', 
-                            opacity: 0.7, 
+                          <p style={{
+                            color: 'var(--deep-blue)',
+                            opacity: 0.7,
                             margin: 0,
                             fontSize: '0.9rem'
                           }}>
@@ -585,15 +643,15 @@ const CarBikeDashboard = () => {
                           </p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ 
-                            color: 'var(--success-green)', 
+                          <div style={{
+                            color: 'var(--success-green)',
                             fontWeight: 'bold',
                             fontSize: '1.1rem',
                             marginBottom: '0.25rem'
                           }}>
                             ⭐ {workshop.rating}
                           </div>
-                          <div style={{ 
+                          <div style={{
                             color: workshop.openNow ? 'var(--success-green)' : 'var(--error-red)',
                             fontSize: '0.8rem',
                             fontWeight: 'bold'
@@ -604,9 +662,9 @@ const CarBikeDashboard = () => {
                       </div>
 
                       <div style={{ marginBottom: '1rem' }}>
-                        <strong style={{ 
-                          color: 'var(--deep-blue)', 
-                          marginBottom: '0.5rem', 
+                        <strong style={{
+                          color: 'var(--deep-blue)',
+                          marginBottom: '0.5rem',
                           display: 'block'
                         }}>
                           Services Offered:
@@ -673,14 +731,14 @@ const CarBikeDashboard = () => {
                 exit={{ opacity: 0 }}
                 style={{ marginTop: '2rem' }}
               >
-                <h2 style={{ 
+                <h2 style={{
                   color: 'var(--deep-blue)',
                   marginBottom: '1.5rem',
                   textAlign: 'center'
                 }}>
                   🚕 Taxi & Cab Services ({filteredTaxis.length})
                 </h2>
-                
+
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -694,15 +752,14 @@ const CarBikeDashboard = () => {
                       whileHover={{ scale: 1.02 }}
                       className="card"
                       style={{
-                        borderLeft: `4px solid ${
-                          taxi.type === 'premium' ? 'var(--golden-yellow)' : 
-                          taxi.type === 'budget' ? 'var(--forest-green)' : 'var(--sky-blue)'
-                        }`
+                        borderLeft: `4px solid ${taxi.type === 'premium' ? 'var(--golden-yellow)' :
+                            taxi.type === 'budget' ? 'var(--forest-green)' : 'var(--sky-blue)'
+                          }`
                       }}
                     >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'flex-start',
                         marginBottom: '1rem'
                       }}>
@@ -722,9 +779,9 @@ const CarBikeDashboard = () => {
                               </span>
                             )}
                           </h3>
-                          <p style={{ 
-                            color: 'var(--deep-blue)', 
-                            opacity: 0.7, 
+                          <p style={{
+                            color: 'var(--deep-blue)',
+                            opacity: 0.7,
                             margin: 0,
                             fontSize: '0.9rem'
                           }}>
@@ -732,15 +789,15 @@ const CarBikeDashboard = () => {
                           </p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ 
-                            color: 'var(--success-green)', 
+                          <div style={{
+                            color: 'var(--success-green)',
                             fontWeight: 'bold',
                             fontSize: '1.1rem',
                             marginBottom: '0.25rem'
                           }}>
                             ⭐ {taxi.rating}
                           </div>
-                          <div style={{ 
+                          <div style={{
                             color: 'var(--deep-blue)',
                             fontSize: '0.8rem',
                             fontWeight: 'bold',
@@ -752,7 +809,7 @@ const CarBikeDashboard = () => {
                       </div>
 
                       <div style={{ marginBottom: '1rem' }}>
-                        <div style={{ 
+                        <div style={{
                           display: 'grid',
                           gridTemplateColumns: 'repeat(3, 1fr)',
                           gap: '0.5rem',
@@ -772,9 +829,9 @@ const CarBikeDashboard = () => {
                           </div>
                         </div>
 
-                        <strong style={{ 
-                          color: 'var(--deep-blue)', 
-                          marginBottom: '0.5rem', 
+                        <strong style={{
+                          color: 'var(--deep-blue)',
+                          marginBottom: '0.5rem',
                           display: 'block'
                         }}>
                           Available Vehicles:
@@ -840,8 +897,8 @@ const CarBikeDashboard = () => {
               animate={{ opacity: 1 }}
               style={{ textAlign: 'center', marginTop: '3rem' }}
             >
-              <p style={{ 
-                color: 'var(--deep-blue)', 
+              <p style={{
+                color: 'var(--deep-blue)',
                 fontSize: '1.2rem',
                 opacity: 0.7
               }}>
@@ -858,7 +915,7 @@ const CarBikeDashboard = () => {
               transition={{ delay: 0.5 }}
               style={{ marginTop: '3rem' }}
             >
-              <h2 style={{ 
+              <h2 style={{
                 color: 'var(--deep-blue)',
                 marginBottom: '1.5rem',
                 textAlign: 'center'

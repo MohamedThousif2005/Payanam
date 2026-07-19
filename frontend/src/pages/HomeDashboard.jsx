@@ -50,17 +50,44 @@ const HomeDashboard = () => {
           transition={{ duration: 0.6 }}
           style={{ textAlign: 'center', marginBottom: '3rem' }}
         >
+          <motion.img
+            src="/favicon.png"
+            alt="Payanam Logo Large"
+            initial={{ scale: 0.8, rotate: -10 }}
+            animate={{ 
+              scale: [1, 1.05, 1],
+              rotate: [0, 5, 0],
+              y: [0, -10, 0]
+            }}
+            transition={{ 
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            style={{
+              width: '180px',
+              height: '180px',
+              marginBottom: '1.5rem',
+              filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.15))'
+            }}
+          />
           <h1 style={{ 
-            fontSize: '3rem', 
+            fontSize: '3.5rem', 
             color: 'var(--deep-blue)',
-            marginBottom: '1rem'
+            marginBottom: '1rem',
+            fontWeight: '800',
+            background: 'linear-gradient(45deg, var(--deep-blue), var(--sky-blue))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
           }}>
             Welcome to PAYANAM
           </h1>
           <p style={{ 
-            fontSize: '1.2rem', 
+            fontSize: '1.4rem', 
             color: 'var(--deep-blue)',
-            opacity: 0.8
+            opacity: 0.9,
+            maxWidth: '600px',
+            margin: '0 auto'
           }}>
             Your trusted travel companion across Tamil Nadu and beyond
           </p>

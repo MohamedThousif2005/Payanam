@@ -31,14 +31,15 @@ public interface BusRepository extends JpaRepository<Bus, Long> {
                                      @Param("to") String to, 
                                      @Param("busType") String busType);
     
-    // NEW: Search buses with intermediate stops
-    @Query("SELECT DISTINCT b FROM Bus b LEFT JOIN b.intermediateStops s WHERE " +
-           "(b.fromLocation = :from AND b.toLocation = :to) OR " +
-           "(b.fromLocation = :from AND s.stopName = :to) OR " +
-           "(s.stopName = :from AND b.toLocation = :to) OR " +
-           "(s.stopName = :from AND s.stopName = :to) " +
-           "AND b.isActive = true")
-    List<Bus> findBusesWithStops(@Param("from") String from, @Param("to") String to);
+    // NEW: Search buses with intermediate stops with fuzzy matching
+    @Query("SELECT DISTINCT b FROM Bus b LEFT JOIN b.intermediateStops s WHERE b.isActive = true AND " +
+           "(:busType IS NULL OR b.busType = :busType) AND (" +
+           "(LOWER(b.fromLocation) LIKE LOWER(CONCAT('%', :from, '%')) AND LOWER(b.toLocation) LIKE LOWER(CONCAT('%', :to, '%'))) OR " +
+           "(LOWER(b.fromLocation) LIKE LOWER(CONCAT('%', :from, '%')) AND LOWER(s.stopName) LIKE LOWER(CONCAT('%', :to, '%'))) OR " +
+           "(LOWER(s.stopName) LIKE LOWER(CONCAT('%', :from, '%')) AND LOWER(b.toLocation) LIKE LOWER(CONCAT('%', :to, '%'))) OR " +
+           "(EXISTS (SELECT s1 FROM b.intermediateStops s1 WHERE LOWER(s1.stopName) LIKE LOWER(CONCAT('%', :from, '%'))) AND " +
+           "EXISTS (SELECT s2 FROM b.intermediateStops s2 WHERE LOWER(s2.stopName) LIKE LOWER(CONCAT('%', :to, '%')))))")
+    List<Bus> findBusesWithStopsAndType(@Param("from") String from, @Param("to") String to, @Param("busType") String busType);
     
     // NEW: Find by bus number
     Bus findByBusNumber(String busNumber);

@@ -36,11 +36,8 @@ public class BusService {
             System.out.println("🔍 Searching buses from: " + from + " to: " + to + " type: " + busType);
             
             List<Bus> buses;
-            if (busType != null && !busType.isEmpty() && !busType.equals("all")) {
-                buses = busRepository.findBusesByRouteAndType(from, to, busType);
-            } else {
-                buses = busRepository.findByFromLocationAndToLocationAndIsActiveTrue(from, to);
-            }
+            String effectiveBusType = (busType == null || busType.isEmpty() || busType.equals("all")) ? null : busType;
+            buses = busRepository.findBusesWithStopsAndType(from, to, effectiveBusType);
             
             // Enhance with real-time data
             buses.forEach(this::enhanceWithRealTimeData);

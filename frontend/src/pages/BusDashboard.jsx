@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { transportService } from '../services/api'
 
 const BusDashboard = () => {
   const [formData, setFormData] = useState({
@@ -11,8 +12,62 @@ const BusDashboard = () => {
   const [selectedBus, setSelectedBus] = useState(null)
   const [searchResults, setSearchResults] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [totalBuses, setTotalBuses] = useState(0)
+  const [allBuses, setAllBuses] = useState([])
+
+  useEffect(() => {
+    fetchAllBuses()
+  }, [])
+
+  const fetchAllBuses = async () => {
+    setIsLoading(true)
+    try {
+      const response = await transportService.getAllBuses()
+      const mappedBuses = mapBusData(response.data)
+      setSearchResults(mappedBuses)
+      setAllBuses(mappedBuses)
+      setTotalBuses(mappedBuses.length)
+    } catch (err) {
+      console.error('Error fetching all buses:', err)
+      setError('Failed to load buses. Please try again later.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const mapBusData = (data) => {
+    return data.map(bus => ({
+      id: bus.busId,
+      number: bus.busNumber,
+      name: bus.busName,
+      operator: bus.operator,
+      from: bus.fromLocation,
+      to: bus.toLocation,
+      departure: bus.departureTime,
+      arrival: bus.arrivalTime,
+      fare: bus.fare,
+      seatsAvailable: bus.availableSeats,
+      currentStatus: bus.currentStatus || 'Scheduled',
+      type: bus.busType?.toLowerCase().includes('ac') ? 'ac' : 'express',
+      liveLocation: bus.currentStatus === 'Running' ? 'On Route' : 'Scheduled',
+      delay: bus.delayMinutes > 0 ? `${bus.delayMinutes}m delay` : 'On time',
+      fromCode: (bus.fromLocation || 'UNK').substring(0, 3).toUpperCase(),
+      toCode: (bus.toLocation || 'UNK').substring(0, 3).toUpperCase(),
+      duration: '4h 30m',
+      routeStops: (bus.intermediateStops || []).map((s, idx) => ({
+        station: s.stopName,
+        code: s.stopName.substring(0, 3).toUpperCase(),
+        time: s.arrivalTime,
+        status: 'Scheduled',
+        actualTime: '',
+        platform: 'Bay ' + (idx + 1)
+      })),
+      isOneToOne: bus.busName?.includes('1 to 1'),
+      routeDescription: `Via ${bus.intermediateStops?.map(s => s.stopName).join(' → ') || 'Direct'}`
+    }))
+  }
 
   // Comprehensive Tamil Nadu 38 Districts Bus Network
   const allBusStands = [
@@ -1109,24 +1164,64 @@ const BusDashboard = () => {
     
     await new Promise(resolve => setTimeout(resolve, 800))
 
-    // Find buses using enhanced search
-    const filteredBuses = findBusesBetweenStations(formData.from, formData.to)
+    setError(null)
+    
+    try {
+      const response = await transportService.unifiedSearch({
+        from: formData.from,
+        to: formData.to,
+        type: 'BUS'
+      })
+      
+      const buses = response.data.map(bus => {
+        const info = bus.realTimeInfo || {}
+        return {
+          id: bus.serviceId,
+          number: bus.serviceNumber,
+          name: bus.serviceName,
+          operator: bus.operator,
+          from: bus.fromStop,
+          to: bus.toStop,
+          departure: bus.departureTime,
+          arrival: bus.arrivalTime,
+          fare: bus.fare,
+          seatsAvailable: bus.availableSeats,
+          currentStatus: info.currentStatus || bus.status,
+          type: bus.serviceName.includes('AC') ? 'ac' : 'express',
+          liveLocation: info.position || 'Scheduled',
+          delay: 'On time',
+          fromCode: bus.fromStop.substring(0, 3).toUpperCase(),
+          toCode: bus.toStop.substring(0, 3).toUpperCase(),
+          duration: '4h 30m', // Simplified for now
+          tracking: info,
+          routeStops: (bus.routeStops || []).map(s => ({
+            station: s.stopName,
+            code: s.stopName.substring(0, 3).toUpperCase(),
+            time: s.arrivalTime,
+            status: 'Scheduled',
+            actualTime: '',
+            platform: 'Bay ' + s.stopOrder
+          })),
+          isOneToOne: bus.serviceName.includes('1 to 1'),
+          routeDescription: `Via ${bus.routeStops?.map(s => s.stopName).join(' → ') || 'Direct'}`
+        }
+      })
 
-    // Filter by bus type
-    const typeFiltered = formData.busType && formData.busType !== 'all' 
-      ? filteredBuses.filter(bus => bus.type === formData.busType)
-      : filteredBuses
-
-    // Sort by departure time
-    const sortedBuses = typeFiltered.sort((a, b) => {
-      const timeA = parseInt(a.departure.replace(':', ''))
-      const timeB = parseInt(b.departure.replace(':', ''))
-      return timeA - timeB
-    })
-
-    setSearchResults(sortedBuses.slice(0, 100))
-    setSelectedBus(null)
-    setIsLoading(false)
+      if (buses.length === 0) {
+        setSearchResults(allBuses)
+        setTotalBuses(allBuses.length)
+        setError('No specific matches found. Showing all available buses.')
+      } else {
+        setSearchResults(buses)
+        setTotalBuses(buses.length)
+      }
+      setLastUpdated(new Date())
+    } catch (err) {
+      console.error('Search failed:', err)
+      setError('Failed to fetch bus routes. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleBusSelect = (bus) => {
@@ -1214,14 +1309,22 @@ const BusDashboard = () => {
             </p>
           </div>
 
-          <h1 style={{ 
-            textAlign: 'center', 
-            color: '#1E40AF',
-            marginBottom: '0.5rem',
-            fontSize: '2.5rem'
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '1rem',
+            marginBottom: '0.5rem'
           }}>
-            TN Bus Services
-          </h1>
+            <img src="/favicon.png" alt="Logo" style={{ width: '50px', height: '50px' }} />
+            <h1 style={{ 
+              color: '#1E40AF',
+              fontSize: '2.5rem',
+              margin: 0
+            }}>
+              TN Bus Services
+            </h1>
+          </div>
 
           <p style={{
             textAlign: 'center',

@@ -201,14 +201,22 @@ const FlightDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 style={{ 
-            textAlign: 'center', 
-            color: 'var(--deep-blue)',
-            marginBottom: '2rem',
-            fontSize: '2.5rem'
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '1rem',
+            marginBottom: '2rem'
           }}>
-            Flight Services
-          </h1>
+            <img src="/favicon.png" alt="Logo" style={{ width: '50px', height: '50px' }} />
+            <h1 style={{ 
+              color: 'var(--deep-blue)',
+              fontSize: '2.5rem',
+              margin: 0
+            }}>
+              Flight Services
+            </h1>
+          </div>
 
           {/* Search Form */}
           <div className="card" style={{ maxWidth: '1000px', margin: '0 auto 3rem auto' }}>
@@ -652,7 +660,7 @@ const FlightDashboard = () => {
                                   fontWeight: 'bold'
                                 }}
                               >
-                                Book Flight for {flight.price}
+                              Approximately {flight.price}
                               </motion.button>
                             </div>
                           </motion.div>

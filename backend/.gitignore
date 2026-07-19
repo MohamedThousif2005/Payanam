@@ -1,33 +1,29 @@
-HELP.md
+# Backend-specific overrides (root .gitignore covers most rules)
+
+# Maven build output
 target/
-.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# Maven wrapper binary (generated, not needed in VCS)
+.mvn/wrapper/maven-wrapper.jar
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# Spring Boot config with secrets — NEVER commit these
+src/main/resources/application-local.yml
+src/main/resources/application-local.properties
+src/main/resources/application-prod.yml
+src/main/resources/application-prod.properties
+src/main/resources/application-secret.yml
+src/main/resources/application-secret.properties
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# Runtime logs
+*.log
+startup.log
 
-### VS Code ###
-.vscode/
+# Compiled classes
+*.class
+
+# Packaged artifacts
+*.jar
+*.war
+*.ear
