@@ -1,152 +1,70 @@
-# =============================================================
-#  PAYANAM — Root .gitignore
-#  Spring Boot (Java 17 / Maven) + Vite / React (Node.js)
-# =============================================================
-
-
-# ─────────────────────────────────────────────
-#  PRIVACY & SECRETS  ← never commit these
-# ─────────────────────────────────────────────
+# ── Secrets & Config ───────────────────────────────────────────
 .env
 .env.*
-!.env.example          # keep the template, not the real file
+!.env.example
 *.env
-application-local.yml
-application-local.properties
-application-secret.yml
-application-secret.properties
-**/src/main/resources/application-prod.yml
-**/src/main/resources/application-prod.properties
-secrets/
-credentials/
+backend/src/main/resources/application.properties
+backend/src/main/resources/application-*.properties
+backend/src/main/resources/application-*.yml
 *.pem
 *.key
 *.p12
 *.jks
-*.pfx
-*.cer
-*.crt
-service-account*.json
-firebase*.json
-google-credentials*.json
-aws-credentials
-.aws/
 
-
-# ─────────────────────────────────────────────
-#  LOGS & RUNTIME ARTIFACTS
-# ─────────────────────────────────────────────
-logs/
-*.log
-*.log.*
-startup.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-hs_err_pid*
-replay_pid*
-
-
-# ─────────────────────────────────────────────
-#  JAVA / MAVEN  (backend)
-# ─────────────────────────────────────────────
+# ── Java / Maven ───────────────────────────────────────────────
 backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
-**/.mvn/wrapper/maven-wrapper.jar
 *.class
 *.jar
 *.war
 *.ear
-*.nar
+.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-
-# ─────────────────────────────────────────────
-#  NODE / VITE  (frontend)
-# ─────────────────────────────────────────────
+# ── Node / Vite ────────────────────────────────────────────────
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
+frontend/coverage/
 *.local
 
+# ── Logs ───────────────────────────────────────────────────────
+*.log
+*.log.*
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# ─────────────────────────────────────────────
-#  OS FILES
-# ─────────────────────────────────────────────
+# ── OS Files ───────────────────────────────────────────────────
 .DS_Store
 .DS_Store?
-._*
 Thumbs.db
 Thumbs.db:encryptable
 ehthumbs.db
-ehthumbs_vista.db
 Desktop.ini
 $RECYCLE.BIN/
 
-
-# ─────────────────────────────────────────────
-#  IDE / EDITORS
-# ─────────────────────────────────────────────
-
-## VS Code
-.vscode/*
-!.vscode/extensions.json   # share recommended extensions
-!.vscode/settings.json     # share workspace settings (non-sensitive)
-
-## IntelliJ IDEA / JetBrains
+# ── IDE: IntelliJ / JetBrains ──────────────────────────────────
 .idea/
-*.iws
 *.iml
+*.iws
 *.ipr
 
-## Eclipse / STS
-.apt_generated
+# ── IDE: VS Code ───────────────────────────────────────────────
+.vscode/
+
+# ── IDE: Eclipse / STS ─────────────────────────────────────────
 .classpath
-.factorypath
 .project
 .settings/
 .springBeans
 .sts4-cache
+.factorypath
 
-## NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-
-## Vim / Emacs / other editors
-*.swp
-*.swo
-*.sw?
-*~
-\#*\#
-.#*
-
-
-# ─────────────────────────────────────────────
-#  TESTING & COVERAGE
-# ─────────────────────────────────────────────
-coverage/
-*.lcov
-.nyc_output/
-test-results/
-surefire-reports/
-
-
-# ─────────────────────────────────────────────
-#  MISC GENERATED / TEMP FILES
-# ─────────────────────────────────────────────
+# ── Temp & Misc ────────────────────────────────────────────────
 *.tmp
-*.temp
 *.bak
+*.swp
 *.orig
-*.patch
-*.rej
